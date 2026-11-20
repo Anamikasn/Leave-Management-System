@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+model Employee{
+  id        Int     @id @default(autoincrement())
+  auth0sub  String   @unique
+  emp_id    String   @unique
+  name      String   
+  email     String   @unique
+  department  String?
+  role      Role    @default(EMPLOYEE)
+  joiningDate  DateTime?  @db.Date
+  leaveRequests LeaveRequest[]
+  LeaveBalances LeaveBalance[]
+  approvedLeaveRequests LeaveRequest[] @relation("LeaveApprover")
+}
+
+model LeaveType{
+  id            Int      @id @default(autoincrement())
+  leave_name    String   @unique
+  description   String?
+  default_days  Int
+  is_paid       Boolean   @default(true)
+  leaveRequests LeaveRequest[]
+  leaveBalances LeaveBalance[]
+}
+
+enum LeaveStatus{
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model LeaveRequest{
+  id          Int           @id @default(autoincrement())
+  emp_id      Int
+  leave_id    Int
+  total_days    Int
+  start_date    DateTime    @db.Date
+  end_date      DateTime    @db.Date
+  reason        String      
+  status        LeaveStatus @default(PENDING)
+  manager_id   Int? 
+  comments      String?
+  actionDate    DateTime?   @db.Date
+  employee     Employee @relation(fields:[emp_id],references:[id])
+  leaveType     LeaveType @relation(fields:[leave_id],references:[id])
+  approver Employee? @relation("LeaveApprover", fields: [manager_id], references: [id])
+}
+
+model LeaveBalance{
+  id    Int   @id @default(autoincrement())
+  emp_id  Int
+  leave_id  Int
+  days_total  Int
+  days_used   Int    @default(0)
+  year      Int
+  employee  Employee @relation(fields:[emp_id],references:[id])
+  leavetype LeaveType @relation(fields:[leave_id],references:[id])
+  @@unique([emp_id, leave_id, year])
+}
