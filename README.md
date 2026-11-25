@@ -1,287 +1,410 @@
-# LeaveManager – Leave Management System
+# LeaveManager
 
-LeaveManager is a web-based Leave Management System developed to simplify and organize employee leave management within an organization. It provides separate dashboards for employees and administrators, allowing employees to submit and track leave requests while administrators manage requests and monitor employee leave balances.
+A web-based Leave Management System that allows employees to apply for leave and track their leave requests, while administrators can review, approve, or reject requests through a centralized dashboard.
 
-The application uses **Auth0 for authentication**, **Node.js and Express for backend APIs**, **Prisma ORM for database access**, and **MySQL for persistent data storage**.
+## 1. Topic and Description
 
-## Project Overview
+**Topic:** Employee Leave Management System
 
-Managing employee leave manually can be time-consuming and difficult to track. LeaveManager aims to provide a centralized platform where employees can apply for leave, view their leave history and check available leave balances, while administrators can review and manage leave requests efficiently.
+LeaveManager is a web application developed to simplify and digitize the employee leave management process.
 
-The system follows a role-based approach with two user roles:
+The application provides a centralized platform for employees to submit leave requests and monitor their status. Administrators can view leave requests from employees and manage them by approving or rejecting pending requests.
 
-- **Employee:** Can access personal information, submit leave requests, view request status and check leave balances.
-- **Admin:** Can manage employee leave requests, review pending applications, approve or reject requests and oversee leave information.
+The system uses role-based access control to provide different functionalities to employees and administrators. Authentication is handled using Auth0, and application data is stored in a relational database using Prisma ORM.
 
-## Features
+### Key Features
 
-### Authentication and Authorization
-- Secure user authentication using Auth0.
-- Auth0 user identity mapped to employee records in the database.
-- Role-based access control for Admin and Employee users.
-- Protected backend API endpoints.
-- Employees can access only their own leave-related information.
+- Secure authentication using Auth0
+- Employee and administrator dashboards
+- Apply for leave by selecting a leave type
+- View personal leave requests
+- Track leave request status
+- View leave balances
+- View all employee leave requests as an administrator
+- Approve or reject pending leave requests
+- Fetch leave types dynamically from the database
+- Display leave request summaries and statistics
 
-### Employee Dashboard
-- View employee profile information.
-- Submit new leave requests.
-- Select leave type and leave dates.
-- Provide a reason for leave.
-- View submitted leave requests.
-- Track leave request status.
-- View available leave balances.
+## 2. Technology Stack
 
-### Leave Request Management
-- Create leave requests with start date, end date and reason.
-- Calculate leave duration based on working days.
-- Exclude Saturdays and Sundays from the working-day calculation.
-- Maintain leave request statuses:
-  - Pending
-  - Approved
-  - Rejected
-  - Cancelled
-- Retrieve leave request details from the backend.
+| Layer             | Technology                      |
+| ----------------- | ------------------------------- |
+| Frontend          | React, TypeScript, Tailwind CSS |
+| Backend           | Node.js, Express.js             |
+| Database          | MySQL                           |
+| ORM               | Prisma                          |
+| Authentication    | Auth0                           |
+| API Documentation | Swagger / OpenAPI               |
+| Version Control   | Git and GitHub                  |
 
-### Admin Dashboard
-- View leave requests submitted by employees.
-- Review pending leave applications.
-- View requests based on their status.
-- Approve or reject leave requests.
-- Create leave requests on behalf of employees.
-- Monitor employee leave information.
+## 3. Architecture
 
-### Leave Balance Management
-- Maintain leave balances for different leave types.
-- Track total leave days and used leave days.
-- Calculate remaining leave balance.
-- Maintain leave balances by employee, leave type and year.
-- Update leave usage when leave requests are approved.
+LeaveManager follows a client-server architecture.
 
-### Database Management
-- Store employee details and roles.
-- Maintain leave types and leave policies.
-- Store leave requests and their approval information.
-- Track employee leave balances.
-- Use relational database constraints to maintain data consistency.
+The React frontend communicates with the Express backend through REST APIs. Auth0 is used to authenticate users, and the backend validates access tokens before allowing access to protected endpoints.
 
-## Technology Stack
-
-| Technology | Purpose |
-|---|---|
-| React | Frontend user interface |
-| TypeScript | Type-safe frontend development |
-| Vite | Frontend development server and build tool |
-| Node.js | Backend JavaScript runtime |
-| Express.js | REST API development |
-| Auth0 | Authentication and identity management |
-| Prisma ORM | Database access and query management |
-| MySQL | Relational database |
-| Swagger / OpenAPI | API documentation |
-
-## System Architecture
-
-LeaveManager follows a three-tier web application architecture.
-
-1. **Presentation Layer:** React frontend responsible for dashboards, forms and user interaction.
-2. **Application Layer:** Express backend responsible for API handling, authentication, authorization, validation and business logic.
-3. **Data Layer:** MySQL database accessed through Prisma ORM for storing application data.
-
-### Architecture Diagram
+Prisma ORM handles database operations between the backend and the MySQL database.
 
 ```mermaid
 flowchart TD
-    User["Admin / Employee"]
-    Frontend["React + TypeScript<br/>LeaveManager Frontend"]
-    Auth0["Auth0<br/>Authentication"]
-    Backend["Node.js + Express<br/>REST API"]
-    Middleware["Authentication<br/>and Employee Middleware"]
-    Prisma["Prisma ORM"]
-    Database[("MySQL Database")]
+    User[Employee / Administrator]
 
-    User --> Frontend
-    Frontend <--> Auth0
-    Frontend -->|"Authenticated API requests"| Backend
-    Backend --> Middleware
-    Middleware --> Backend
-    Backend --> Prisma
-    Prisma --> Database
-    Database --> Prisma
-    Prisma --> Backend
-    Backend --> Frontend
+    subgraph Frontend
+        UI[React Frontend]
+        Auth0SDK[Auth0 React SDK]
+        API[API Service]
+    end
+
+    subgraph Authentication
+        Auth0[Auth0 Authentication]
+    end
+
+    subgraph Backend
+        Express[Node.js / Express API]
+        Middleware[Authentication Middleware]
+        Routes[Leave Request and Leave Type Routes]
+        Prisma[Prisma ORM]
+    end
+
+    DB[(MySQL Database)]
+
+    User --> UI
+    UI --> Auth0SDK
+    Auth0SDK <--> Auth0
+    UI --> API
+    API --> Express
+    Express --> Middleware
+    Middleware --> Auth0
+    Middleware --> Routes
+    Routes --> Prisma
+    Prisma --> DB
 ```
 
-## Authentication Flow
+### Architecture Flow
 
-1. The user opens LeaveManager and initiates login.
-2. Auth0 authenticates the user.
-3. The frontend obtains an access token for the LeaveManager API.
-4. The frontend sends the token with API requests.
-5. The backend verifies the token using authentication middleware.
-6. The authenticated Auth0 identity is mapped to an employee record.
-7. The employee's role determines which operations are permitted.
+1. The user logs in through Auth0.
+2. Auth0 authenticates the user and provides an access token.
+3. The frontend sends API requests to the Express backend with the required authorization token.
+4. The backend authentication middleware validates the token and identifies the user.
+5. The backend processes the request using the appropriate route and Prisma ORM.
+6. Prisma retrieves or updates data in the MySQL database.
+7. The backend returns the response to the frontend.
 
-## Database Entities
+## 4. Roles and Permissions
 
-The application uses the following main database entities:
+LeaveManager supports two primary roles.
 
 ### Employee
-Stores employee information, including employee ID, name, email, department, role and Auth0 identity.
 
-### LeaveType
-Stores available leave categories, including leave name, description, default leave days and paid/unpaid information.
+An employee can:
 
-### LeaveRequest
-Stores employee leave applications, including leave type, dates, number of working days, reason, status, approving manager and comments.
+- Log in securely using Auth0.
+- View their dashboard.
+- Apply for leave by selecting a leave type.
+- Enter the leave start date, end date, and reason.
+- View their own leave requests.
+- Track whether a request is pending, approved, or rejected.
+- View their leave balance.
 
-### LeaveBalance
-Stores leave entitlement and usage for each employee, leave type and year.
+Employees cannot approve or reject leave requests or access other employees' leave request records.
 
-## API Overview
+### Administrator
 
-The backend exposes REST APIs for employee profiles, leave requests and leave balances.
+An administrator can:
 
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/users/me` | Get the logged-in employee profile |
-| GET | `/api/leave-requests/me` | Get the employee's leave requests |
-| POST | `/api/leave-requests/me` | Submit a leave request |
-| GET | `/api/leave-requests` | Admin: retrieve all leave requests |
-| GET | `/api/leave-requests?status=PENDING` | Admin: retrieve requests by status |
-| GET | `/api/leave-requests/:id` | Retrieve a leave request by ID |
-| POST | `/api/leave-requests` | Admin: create a request for an employee |
-| PATCH | `/api/leave-requests/:id/status` | Admin: approve or reject a request |
-| GET | `/api/leave-balances/me` | Get the employee's leave balances |
-| GET | `/api/leave-balances/:id` | Admin: retrieve an employee's leave balances |
+- Log in to the administrator dashboard.
+- View leave request statistics.
+- View leave requests submitted by employees.
+- View employee and leave type details.
+- View pending leave requests.
+- Approve pending leave requests.
+- Reject pending leave requests.
+- View requests of different statuses.
 
-## Project Structure
+Administrators are authorized to manage leave requests, while employees are restricted to their own records.
 
-```text
-Leave-Management-System/
-│
-├── lms-fe/                 # React frontend
-│   ├── src/
-│   │   ├── pages/          # Application pages and dashboards
-│   │   ├── services/       # API service functions
-│   │   └── ...
-│   └── package.json
-│
-├── lms-be/                 # Express backend
-│   ├── prisma/             # Prisma schema and database files
-│   ├── src/
-│   │   ├── config/         # Database configuration
-│   │   ├── middleware/     # Authentication and employee middleware
-│   │   ├── routes/         # API route handlers
-│   │   ├── server.js       # Backend entry point
-│   │   └── swagger.js      # API documentation configuration
-│   ├── .env.example
-│   └── package.json
-│
-├── README.md
-└── package.json
-```
+## 5. Database
 
-## Getting Started
+The application uses MySQL as its relational database and Prisma ORM for database access.
+
+### Main Database Models
+
+| Model        | Description                                               |
+| ------------ | --------------------------------------------------------- |
+| Employee     | Stores employee information and identity details          |
+| LeaveType    | Stores available leave types and their default leave days |
+| LeaveRequest | Stores employee leave applications and their status       |
+| LeaveBalance | Stores leave balances for employees                       |
+
+### Leave Request Statuses
+
+- `PENDING` – Request is awaiting administrator action.
+- `APPROVED` – Request has been approved.
+- `REJECTED` – Request has been rejected.
+- `CANCELLED` – Request has been cancelled, if supported by the application workflow.
+
+A leave request is associated with an employee and a leave type.
+
+## 6. Setup Instructions
 
 ### Prerequisites
 
-Make sure the following are installed:
+Install the following before running the project:
 
 - Node.js and npm
-- MySQL
-- Auth0 account
+- MySQL or MariaDB
 - Git
+- An Auth0 account
 
-### 1. Clone the Repository
+### Step 1: Clone the Repository
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/Anamikasn/Leave-Management-System.git
 cd Leave-Management-System
 ```
 
-### 2. Configure the Backend
+### Step 2: Configure the Backend
+
+Navigate to the backend folder:
 
 ```bash
 cd lms-be
+```
+
+Install dependencies:
+
+```bash
 npm install
 ```
 
-Create a `.env` file using the provided `.env.example` as a reference.
+Create a `.env` file in the backend directory and configure the required environment variables.
 
-Configure the required database connection and Auth0 environment variables.
+Example:
 
-### 3. Configure the Database
+```env
+DATABASE_URL="mysql://USERNAME:PASSWORD@localhost:3306/leavemanager_db"
+AUTH0_DOMAIN="your-auth0-domain"
+AUTH0_AUDIENCE="your-api-audience"
+PORT=4000
+```
 
-Create a MySQL database for the project.
+Replace the placeholder values with your actual database and Auth0 configuration.
 
-Configure Prisma using the project's database settings and apply the required database migrations or schema setup.
+### Step 3: Configure the Database
 
-Generate the Prisma client if required by the project configuration.
+Create the database in MySQL:
 
-### 4. Start the Backend
+```sql
+CREATE DATABASE leavemanager_db;
+```
 
-Run the backend development command defined in `lms-be/package.json`.
+Run Prisma migrations:
 
-The backend development server is configured to run on:
+```bash
+npx prisma migrate dev
+```
+
+Generate the Prisma Client:
+
+```bash
+npx prisma generate
+```
+
+If the project contains a seed script, run it using the seed command configured in `package.json` or Prisma configuration.
+
+### Step 4: Start the Backend
+
+```bash
+npm run dev
+```
+
+The backend should run at:
 
 ```text
 http://localhost:4000
 ```
 
-### 5. Configure the Frontend
+If your backend uses a different development script, use the script defined in its `package.json`.
 
-Open a new terminal:
+### Step 5: Configure the Frontend
+
+Open another terminal:
 
 ```bash
 cd lms-fe
+```
+
+Install dependencies:
+
+```bash
 npm install
 ```
 
-Configure the frontend Auth0 settings in the frontend environment file, using the project's environment variable template.
+Create a `.env` file in the frontend directory.
 
-### 6. Start the Frontend
+Example:
 
-Run the frontend development command defined in `lms-fe/package.json`.
+```env
+VITE_AUTH0_DOMAIN="your-auth0-domain"
+VITE_AUTH0_CLIENT_ID="your-auth0-client-id"
+VITE_AUTH0_AUDIENCE="your-api-audience"
+```
 
-The Vite development server is configured to run on:
+Use the exact variable names expected by your frontend Auth0 configuration.
+
+### Step 6: Start the Frontend
+
+```bash
+npm run dev
+```
+
+The frontend will usually run at:
 
 ```text
 http://localhost:5173
 ```
 
-## Future Enhancements
+Open the URL in your browser and log in using Auth0.
 
-The following improvements can be considered as the project evolves:
+## 7. Environment Variables
 
-- Complete and thoroughly test Admin request creation and approval workflows.
-- Add leave request overlap validation.
-- Add public holiday support to working-day calculations.
-- Improve leave policy and balance validation.
-- Add email notifications for request submission, approval and rejection.
-- Add audit logs for administrative actions.
-- Add employee search and advanced request filtering.
-- Add automated backend API tests.
-- Introduce organization-level multi-tenancy if the system is extended to support multiple companies.
-- Deploy separate development, staging and production environments.
+The following environment variables are required for local development.
 
-## Project Status
+### Backend Environment Variables
 
-LeaveManager is currently being developed as a proof-of-concept Leave Management System.
+| Variable         | Description                                   |
+| ---------------- | --------------------------------------------- |
+| `DATABASE_URL`   | MySQL connection string used by Prisma        |
+| `AUTH0_DOMAIN`   | Auth0 tenant domain used for token validation |
+| `AUTH0_AUDIENCE` | Identifier of the Auth0 API                   |
+| `PORT`           | Port on which the backend server runs         |
 
-The core application structure, authentication flow, employee and admin roles, database models and leave-related APIs have been developed. The Admin dashboard and persistence workflows are being integrated and tested.
+### Frontend Environment Variables
 
-## Learning Objectives
+| Variable               | Description                                    |
+| ---------------------- | ---------------------------------------------- |
+| `VITE_AUTH0_DOMAIN`    | Auth0 domain used by the frontend              |
+| `VITE_AUTH0_CLIENT_ID` | Auth0 application client ID                    |
+| `VITE_AUTH0_AUDIENCE`  | Auth0 API audience used when requesting tokens |
 
-This project provides practical experience with:
+**Security:** Never commit actual database passwords, Auth0 client secrets, or other sensitive credentials to GitHub. Keep local environment files out of version control.
 
-- Full-stack web application development.
-- React and TypeScript.
-- REST API development using Express.
-- Authentication and role-based authorization.
-- Relational database design.
-- Prisma ORM and MySQL.
-- Frontend-backend integration.
-- Environment configuration and application architecture.
+## 8. API Documentation
 
----
+The backend exposes REST APIs for leave type retrieval, leave request management, and leave balance retrieval.
 
-**LeaveManager** — Simplifying employee leave management through a centralized and role-based web application.
+All protected endpoints require a valid Auth0 access token in the Authorization header.
+
+```http
+Authorization: Bearer <access_token>
+```
+
+### Leave Types
+
+| Method | Endpoint           | Required Role      | Description                     |
+| ------ | ------------------ | ------------------ | ------------------------------- |
+| GET    | `/api/leave-types` | Authenticated user | Fetch all available leave types |
+
+### Leave Requests
+
+| Method | Endpoint                         | Required Role | Description                                   |
+| ------ | -------------------------------- | ------------- | --------------------------------------------- |
+| GET    | `/api/leave-requests/me`         | Employee      | Fetch the logged-in employee's leave requests |
+| POST   | `/api/leave-requests/me`         | Employee      | Create a leave request                        |
+| GET    | `/api/leave-requests`            | Administrator | Fetch leave requests from all employees       |
+| PATCH  | `/api/leave-requests/:id/status` | Administrator | Approve or reject a pending leave request     |
+
+### Leave Balances
+
+| Method | Endpoint                  | Required Role | Description                                     |
+| ------ | ------------------------- | ------------- | ----------------------------------------------- |
+| GET    | `/api/leave-balances/me`  | Employee      | Fetch the logged-in employee's leave balances   |
+| GET    | `/api/leave-balances/:id` | Administrator | Fetch leave balance information for an employee |
+
+### Example: Create a Leave Request
+
+```http
+POST /api/leave-requests/me
+```
+
+Request body:
+
+```json
+{
+  "leave_id": 1,
+  "start_date": "2026-11-28",
+  "end_date": "2026-11-30",
+  "reason": "Personal reasons"
+}
+```
+
+### Example: Update Leave Request Status
+
+```http
+PATCH /api/leave-requests/5/status
+```
+
+Request body:
+
+```json
+{
+  "status": "APPROVED"
+}
+```
+
+The administrator can update the status of a pending leave request to `APPROVED` or `REJECTED`.
+
+## 9. API Testing
+
+The backend API can be tested using:
+
+- Swagger UI, if enabled in the backend
+- Postman
+- Browser Developer Tools
+- The LeaveManager frontend
+
+For protected APIs, include a valid Auth0 access token in the request.
+
+## 10. Project Structure
+
+Leave-Management-System/
+│
+├── lms-fe/
+│   ├── src/
+│   │   ├── pages/
+│   │   ├── components/
+│   │   └── services/
+│   ├── public/
+│   └── package.json
+│
+├── lms-be/
+│   ├── src/
+│   │   ├── config/
+│   │   ├── generated/
+│   │   │   └── prisma/    # Generated Prisma Client
+│   │   ├── middleware/
+│   │   ├── routes/
+│   │   └── ...
+│   │
+│   ├── prisma/
+│   │   └── schema.prisma
+│   ├── package.json
+│   └── .env
+│
+└── README.md
+
+The project structure may vary slightly depending on the current implementation.
+
+## 11. Future Enhancements
+
+- Automatic leave balance deduction after approval
+- Leave balance initialization for new employees
+- Holiday and weekend-aware leave day calculation
+- Email notifications for leave request updates
+- Employee profile management
+- Leave request cancellation
+- Advanced filtering and search for administrators
+
+## 12. License
+
+This project was developed for educational and project purposes.
