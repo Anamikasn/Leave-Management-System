@@ -1,40 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
+import { apiRequest } from "../services/api";
 
 export default function AdminDashboard() {
 
-    const [leaveRequests, setLeaveRequests] = useState([
-        {
-            id: 1,
-            employeeName: "Ananya Nair",
-            empId: "EMP002",
-            leaveType: "Casual Leave",
-            startDate: "23 Nov 2026",
-            endDate: "24 Nov 2026",
-            days: 2,
-            status: "Pending"
-        },
-        {
-            id: 2,
-            employeeName: "Ananya Nair",
-            empId: "EMP002",
-            leaveType: "Sick Leave",
-            startDate: "12 Oct 2026",
-            endDate: "13 Oct 2026",
-            days: 2,
-            status: "Approved"
-        },
-        {
-            id: 3,
-            employeeName: "Arjun Kumar",
-            empId: "EMP003",
-            leaveType: "Earned Leave",
-            startDate: "25 Nov 2026",
-            endDate: "27 Nov 2026",
-            days: 3,
-            status: "Rejected"
-        }
-    ]);
+    const { logout } = useAuth0();
+    const [leaveRequests, setLeaveRequests] = useState([]);
+    const { getAccessTokenSilently } = useAuth0();
+
 
     const totalEmployees = 4;
     const totalRequests = leaveRequests.length;
@@ -64,15 +38,84 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleRequestAction = (id, newStatus) => {
-        setLeaveRequests(previousRequests =>
-            previousRequests.map(request =>
-                request.id === id
-                    ? { ...request, status: newStatus }
-                    : request
-            )
+    const fetchLeaveRequests = async () => {
+    try {
+    const data = await apiRequest(
+      getAccessTokenSilently,
+      "/api/leave-requests",
+      {
+        method: "GET",
+      }
+    );
+
+    console.log("Leave requests from database:", data);
+
+    const requests = Array.isArray(data)
+      ? data
+      : data.leaveRequests ?? [];
+
+    // setLeaveRequests(requests);
+
+    const formattedRequests = requests.map((request) => ({
+  id: request.id,
+
+  employeeName: request.employee?.name ?? "Unknown",
+  empId: request.employee?.emp_id ?? "N/A",
+
+  leaveType:
+    typeof request.leaveType === "object"
+      ? request.leaveType?.leave_name ?? "Unknown"
+      : request.leaveType,
+
+  startDate: request.start_date
+    ? new Date(request.start_date).toLocaleDateString("en-GB")
+    : "N/A",
+
+  endDate: request.end_date
+    ? new Date(request.end_date).toLocaleDateString("en-GB")
+    : "N/A",
+
+  days: request.total_days,
+
+  status:
+    request.status?.charAt(0) +
+    request.status?.slice(1).toLowerCase(),
+}));
+
+setLeaveRequests(formattedRequests);
+
+  } catch (error) {
+    console.error("Error fetching leave requests:", error);
+  }
+};
+
+useEffect(() => {
+  fetchLeaveRequests();
+}, []);
+
+    const handleRequestAction = async (id, newStatus) => {
+    try {
+        const status = newStatus.toUpperCase();
+
+        await apiRequest(
+            getAccessTokenSilently,
+            `/api/leave-requests/${id}/status`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({
+                    status: status
+                })
+            }
         );
-    };
+
+        // Fetch the latest leave requests from the backend
+        await fetchLeaveRequests();
+
+    } catch (error) {
+        console.error("Failed to update leave request:", error);
+        alert("Could not update leave request. Please try again.");
+    }
+};
 
     const summaryCards = [
         {
@@ -113,19 +156,42 @@ export default function AdminDashboard() {
             <div className="max-w-7xl mx-auto flex flex-col gap-8">
 
                 {/* Header */}
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-800">
-                        LeaveEase
-                    </h2>
+                
 
-                    <h1 className="text-3xl font-bold text-gray-900 mt-6">
-                        Welcome Back, Admin!
-                    </h1>
+        {/* Header */}
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 
-                    <p className="text-gray-500 mt-2">
-                        Here's an overview of employee leave activity.
-                    </p>
-                </div>
+            {/* Dashboard Title */}
+            <div>
+                <h2 className="text-2xl font-bold text-gray-800">
+                    LeaveManager
+                </h2>
+
+                <h1 className="text-3xl font-bold text-gray-900 mt-4">
+                    Welcome Back, Admin!
+                </h1>
+
+                <p className="text-gray-500 mt-2">
+                    Here's an overview of employee leave activity.
+                </p>
+            </div>
+
+            {/* Logout Button */}
+            <button
+                onClick={() =>
+                    logout({
+                        logoutParams: {
+                            returnTo: window.location.origin,
+                        },
+                    })
+                }
+                className="self-start sm:self-center rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition"
+            >
+                Logout
+            </button>
+
+        </header>
+
 
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">

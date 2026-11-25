@@ -3,7 +3,7 @@ import { prisma } from "../config/prisma.js";
 const loadEmployee = async (req, res, next) => {
     try {
         const auth0sub = req.auth.payload.sub;
-
+        console.log("Auth0 sub:", auth0sub);
         const employee = await prisma.employee.findUnique({
             where: {
                 auth0sub: auth0sub
@@ -21,7 +21,8 @@ const loadEmployee = async (req, res, next) => {
         next();
 
     } catch (error) {
-        console.error("Error loading employee:", error);
+        // console.error("Error loading employee:", error);
+        console.dir(error, { depth: null });
 
         res.status(500).json({
             message: "Failed to load employee"
